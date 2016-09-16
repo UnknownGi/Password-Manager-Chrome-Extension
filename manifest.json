@@ -1,0 +1,23 @@
+{
+	"manifest_version": 2,
+	
+	"name": "Password Manager",
+	"description": "Network Security Assignment that Handles Users Password on Web Using SHA-256 Encryption",
+	"version": "1.0.0",
+	
+	"icons": {
+		"64": "icons/icon64.png"
+	},
+	
+	"permissions": [
+		"activeTab",
+		"storage",
+        "tabs"
+    ],
+	
+	"browser_action": {
+		"default_icon": "icons/icon32.png",
+		"default_title": "Password Manager",
+		"default_popup": "popup.html"
+	}
+}

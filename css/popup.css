@@ -1,0 +1,83 @@
+body { 
+	min-width: 300px;
+	min-height: 125px;
+}
+
+#userPanel {
+    min-width: 550px;
+}
+
+#startPanel, .buttonSection, .heading, .msg, #slider, #check {
+	text-align: center;
+}
+
+#userLabel, #masterLabel, #siteLabel, #passLabel, #usrLabel {
+	display: block;
+	text-align: center;
+}
+
+.form-group input {
+	margin: auto;
+	width: 85%;
+}
+
+#userPanel input {
+    text-align: center;
+}
+
+#not, #gen, #managed {
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    padding: 10px;
+    margin: 35px;
+}
+
+#not p, #gen p:first-child {
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+input[type=range] {
+    -webkit-appearance: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 50%;
+    height: 10px;
+    background: #ddd;
+    border: none;
+    border-radius: 3px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    border: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: dodgerblue;
+    margin-top: -4px;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+    background: #ccc;
+}
+
+#gpwd {
+    width: 75%;
+}
+
+.copyButton, #copyButtonPass, #copyButtonUser, #copyButtonGen {
+    position: relative;
+    left: 370px;
+    bottom: 34px;
+}
+
+.rdonly:hover {
+   cursor: default;
+}
