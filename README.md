@@ -59,10 +59,13 @@ Your extension is installed and ready to use.
 
 ![generator](http://i.imgur.com/i37c2lO.png)
 
+## Commit Updates 
+
+- 19th September: Added Authenticated Encrypting using AES and sjcl Encryption
+
 ## Improvements
 
 There is a lot of improvements for this extension that can get it published to chrome store.
-- Advanced Encryption Techniques
 - Multi-user Management
 - Filling Users Forms w/ Credentails
 - Automatic Login
