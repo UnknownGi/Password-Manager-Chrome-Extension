@@ -3,12 +3,24 @@ $(document).ready(function(){
     var password = [];
     
     $(function() {
-        console.log(localStorage.getItem('username') + ' ' + localStorage.getItem('master'));
+        localStorage.clear();
         
+        $('#alertMsg').hide();
+        if (localStorage.getItem('username') === null) 
+            $('#alertMsg').show();
         if (localStorage.getItem('password') === null)
             localStorage.setItem('password', password);
         if (localStorage.getItem('state') === null) 
             localStorage.setItem('state', 'register');
+        if (localStorage.getItem('ekey') === null) 
+            localStorage.setItem('ekey', '<pP10d%dk;al![2089]$ah!r');
+        
+        if (localStorage.getItem('username') !== null ) {
+            console.log('Username: ' + localStorage.getItem('username') + '\nEncrypted Master: ' + localStorage.getItem('master'));
+            console.log('Real Password: ' + GibberishAES.dec(localStorage.getItem('master'), localStorage.getItem('ekey')));
+            console.log('SJCL Encrypt: ' + sjcl.encrypt(localStorage.getItem('ekey'), localStorage.getItem('master')));
+            console.log('SJCL Decrypt: ' + sjcl.decrypt(localStorage.getItem('ekey'), sjcl.encrypt(localStorage.getItem('ekey'), localStorage.getItem('master'))));
+        }
         
         if (localStorage.getItem('state') == 'register') {
             $('#registerPanel').show();
@@ -35,10 +47,10 @@ $(document).ready(function(){
             domain = domain.split(':')[0];
             $('#site').val(domain);
             
-            console.log(localStorage.getItem(domain));
-            console.log(localStorage.getItem(domain+'id'));
-            console.log(localStorage.getItem(domain+'pass'));
-            console.log(localStorage.getItem(domain+'ekey'));
+            console.log('Domain: ' + localStorage.getItem(domain));
+            console.log('ID: ' + localStorage.getItem(domain+'id'));
+            console.log('Pass: ' + localStorage.getItem(domain+'pass'));
+            console.log('Ekey: ' + localStorage.getItem(domain+'ekey'));
             
             
             if (localStorage.getItem(domain+'id') === null) {
@@ -62,17 +74,34 @@ $(document).ready(function(){
             if ( $('#usr').val().length == 0 || $('#pwd').val().length == 0 ) console.log('error:: username or master missing');
             else {
                 localStorage.setItem('username', $('#usr').val());
-                localStorage.setItem('master', $('#pwd').val());
+                
+                // :: ENCRYTING
+                var aes = GibberishAES.enc($('#pwd').val(), localStorage.getItem('ekey'));
+                var epass = sjcl.encrypt(localStorage.getItem('ekey'), aes);
+                localStorage.setItem('master', epass);
                 
                 localStorage.setItem('state', 'login');
                 
+                console.log('aes: ' + aes + '\nepass: ' + epass);
+                console.log('Master: ' + localStorage.getItem('master'));
+                console.log('decrypt: ' + sjcl.decrypt(localStorage.getItem('ekey'), localStorage.getItem('master')));
+                
+                $('#alertMsg').hide();
                 $('#registerPanel').hide();
                 $('#userPanel').show();
             }
         } else {
+            // :: DECRYTING
+            var emsg = sjcl.decrypt(localStorage.getItem('ekey'), localStorage.getItem('master'));
+            var epwd = GibberishAES.enc($('#pwd').val(), localStorage.getItem('ekey'));
+            
+            if ( GibberishAES.dec(emsg, localStorage.getItem('ekey')) != GibberishAES.dec(epwd, localStorage.getItem('ekey')) )   
+            console.log('Decrypt Master: ' + emsg + '\nEncrypt Pass: ' + epwd);
+            else console.log('Decrypt Master: ' + emsg + '\nEncrypt Pass: ' + emsg);
+            
             if ( localStorage.getItem('username') != $('#usr').val() ) console.log("error:: no username exists");
             else {
-                if ( localStorage.getItem('master') != $('#pwd').val() ) console.log('error:: master mismatch');
+                if ( GibberishAES.dec(emsg, localStorage.getItem('ekey')) != GibberishAES.dec(epwd, localStorage.getItem('ekey')) )     console.log('error:: master mismatch');
                 else {
                     $('#registerPanel').hide();
                     $('#userPanel').show();
@@ -111,14 +140,18 @@ $(document).ready(function(){
     // :: Delete Account
     // Description: deletes all accounts and passwords for current user
     $('#yes').click(function() {
-        if ( localStorage.getItem('master') == $('#delpwd').val() ) {
+        var emsg = sjcl.decrypt(localStorage.getItem('ekey'), localStorage.getItem('master'));
+        if ( GibberishAES.dec(emsg, localStorage.getItem('ekey')) == $('#delpwd').val() ) {
             $('#deletePanel').hide();
             $('#registerPanel').show();
 
-            localStorage.reset();
+            localStorage.clear();
             
             localStorage.setItem('state', 'register');
-        } 
+            localStorage.setItem('ekey', '<pP10d%dk;al![2089]$ah!r');
+            
+            $('#alertMsg').show();
+        } else alert('error:: invalid pass');
     });
     
     // :: function
@@ -142,16 +175,24 @@ $(document).ready(function(){
     // :: Save Password
     // Description: Saves Password For a Particular Website using Encryption Techniques
     $('#save').click(function() {
-        localStorage.setItem(domain + 'id', $('#usrname').val());
-        localStorage.setItem(domain + 'pass', $('#spwd').val());
-        localStorage.setItem(domain + 'ekey', 'none');
-        
-        $('#not').hide();
-        $('#managed').show();
-        
-        $('#copyUser').val(localStorage.getItem(domain+'id'));
-        $('#copyPass').val(localStorage.getItem(domain+'pass'));
-        // :: Use Encryption To Save Password
+        if ( $('#usrname').val().length == 0 || $('#spwd').val().length == 0 ) console.log('error:: username or password missing');
+        else { 
+            localStorage.setItem(domain + 'id', $('#usrname').val());
+            
+            var ekey = pseudoRandom();
+            localStorage.setItem(domain + 'ekey', ekey);
+
+            var enc = GibberishAES.enc($('#spwd').val(), ekey);
+            localStorage.setItem(domain + 'pass', enc);
+
+            console.log('User: ' + $('#usrname').val() + '\nEnc: ' + enc + '\nKey: ' + ekey + '\nDec: ' + GibberishAES.dec(enc, ekey));
+
+            $('#not').hide();
+            $('#managed').show();
+
+            $('#copyUser').val(localStorage.getItem(domain+'id'));
+            $('#copyPass').val(localStorage.getItem(domain+'pass'));
+        } 
     });
     
     // :: function
@@ -190,15 +231,15 @@ $(document).ready(function(){
     // :: Copy to Clipboard
     // Description: Copies password generated by password gen to buffer
     $('#copyButtonGen').click(function() {
-        copyToClipboard(document.getElementById("gpwd"));
+        copyToClipboard(document.getElementById("gpwd"), domain, 0);
     });
     
     $('#copyButtonUser').click(function() {
-        copyToClipboard(document.getElementById("copyUser"));
+        copyToClipboard(document.getElementById("copyUser"), domain, 0);
     });
     
     $('#copyButtonPass').click(function() {
-        copyToClipboard(document.getElementById("copyPass"));
+        copyToClipboard(document.getElementById("copyPass"), domain, 1);
     });
     
     // :: function
@@ -219,60 +260,67 @@ $(document).ready(function(){
     // :: Save Password
     // Description: Overwrites Password For a Particular Website using Encryption Techniques
     $('#saveChange').click(function() {
-        localStorage.setItem(domain + 'id', $('#copyUser').val());
-        localStorage.setItem(domain + 'pass', $('#copyPass').val());
-        localStorage.setItem(domain + 'ekey', 'none');
-        
-        $('#copyUser').attr('disabled', true);
-        $('#copyPass').attr('disabled', true);
-        
-        $('#copyButtonUser').show();
-        $('#copyButtonPass').show();
-        
-        $('#change').show();
-        $('#saveChange').hide();
+        if ( $('#copyUser').val().length == 0 || $('#copyPass').val().length == 0 ) console.log('error:: username or master missing');
+        else {
+            localStorage.setItem(domain + 'id', $('#copyUser').val());
+    
+            var ekey = pseudoRandom();
+            localStorage.setItem(domain + 'ekey', ekey);
+
+            var ency = GibberishAES.enc($('#copyPass').val(), ekey);
+            localStorage.setItem(domain + 'pass', ency);
+
+            console.log('User: ' + $('#copyUser').val() + '\nEnc: ' + ency + '\n' + ekey + '\nDec: ' + GibberishAES.dec(ency, ekey));
+
+            $('#copyUser').val(localStorage.getItem(domain+'id'));
+            $('#copyPass').val(localStorage.getItem(domain+'pass'));
+
+            $('#copyUser').attr('disabled', true);
+            $('#copyPass').attr('disabled', true);
+
+            $('#copyButtonUser').show();
+            $('#copyButtonPass').show();
+
+            $('#change').show();
+            $('#saveChange').hide();
+        }
     });
 });
 
-function copyToClipboard(elem) {
-    var targetId = "_hiddenCopyText_";
-    var isInput = elem.tagName === "INPUT" || elem.tagName === "TEXTAREA";
-    var origSelectionStart, origSelectionEnd;
-    if (isInput) {
-        target = elem;
-        origSelectionStart = elem.selectionStart;
-        origSelectionEnd = elem.selectionEnd;
-    } else {
-        target = document.getElementById(targetId);
-        if (!target) {
-            var target = document.createElement("textarea");
-            target.style.position = "absolute";
-            target.style.left = "-9999px";
-            target.style.top = "0";
-            target.id = targetId;
-            document.body.appendChild(target);
-        }
-        target.textContent = elem.textContent;
-    }
-    var currentFocus = document.activeElement;
-    target.focus();
-    target.setSelectionRange(0, target.value.length);
+function copyToClipboard(elementId, domain, val) {  
+    var aux = document.createElement("input");
     
-    // copy the selection
-    var succeed;
-    try {
-    	  succeed = document.execCommand("copy");
-    } catch(e) {
-        succeed = false;
-    }
-    if (currentFocus && typeof currentFocus.focus === "function") {
-        currentFocus.focus();
-    }
+    if ( val == 0 ) aux.setAttribute("value", $('#' + elementId.id).val());
+    else aux.setAttribute("value", GibberishAES.dec($('#' + elementId.id).val(), localStorage.getItem(domain + 'ekey')));
     
-    if (isInput) {
-        elem.setSelectionRange(origSelectionStart, origSelectionEnd);
-    } else {
-        target.textContent = "";
-    }
-    return succeed;
+    document.body.appendChild(aux);
+    aux.select();
+    document.execCommand("copy");
+
+    document.body.removeChild(aux);
+}
+
+function pseudoRandom() {
+    var array = [];
+        
+    var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+    for (i=0; i<alphabet.length; ++i) array.push(alphabet[i]);
+    
+    alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    for (i=0; i<alphabet.length; ++i) array.push(alphabet[i]);
+    
+    var number = '0123456789'.split('');
+    for (i=0; i<number.length; ++i) array.push(number[i]);
+        
+        
+    var special = '!@#$%^&*(){}][:;><,.]'.split('');
+    for (i=0; i<special.length; ++i) array.push(special[i]);
+    
+        
+    var pass = "";
+    for (i=0; i<16; ++i) {
+        pass += array[Math.floor(Math.random() * array.length)];
+    } 
+    
+    return pass;
 }
